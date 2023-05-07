@@ -30,9 +30,9 @@ func redial(ctx context.Context, factory func() any) chan chan any {
 	sessions := make(chan chan any) // 双chan模式
 
 	go func() {
-		sessCh := make(chan any)
 		defer close(sessions)
 
+		sessCh := make(chan any)
 		for {
 			select {
 			case sessions <- sessCh: // 通过外部chan，接收者让生产者开始生产
@@ -68,8 +68,8 @@ func do() {
 	}()
 }
 
-// publish publishes messages to a reconnecting Session to a fanout exchange.
-// It receives from the application specific source of messages.
+// publish publishes msgQueueForPub to a reconnecting Session to a fanout exchange.
+// It receives from the application specific source of msgQueueForPub.
 func publish(sessions chan chan any, messages <-chan Message) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -125,7 +125,7 @@ func publish(sessions chan chan any, messages <-chan Message) {
 				}
 
 			case body, running = <-reading:
-				// all messages consumed
+				// all msgQueueForPub consumed
 				if !running {
 					return
 				}
@@ -148,7 +148,7 @@ func identity() string {
 	return fmt.Sprintf("%x", h.Sum(nil))
 }
 
-// subscribe consumes deliveries from an exclusive queue from a fanout exchange and sends to the application specific messages chan.
+// subscribe consumes deliveries from an exclusive queue from a fanout exchange and sends to the application specific msgQueueForPub chan.
 func subscribe(sessions chan chan Session, messages chan<- Message) {
 	queue := identity()
 
@@ -181,7 +181,7 @@ func subscribe(sessions chan chan Session, messages chan<- Message) {
 	}
 }
 
-// write is this application's subscriber of application messages, printing to
+// write is this application's subscriber of application msgQueueForPub, printing to
 // stdout.
 func write(w io.Writer) chan<- Message {
 	lines := make(chan Message)

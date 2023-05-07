@@ -26,7 +26,7 @@ type PubSub struct {
 type PubSubConf struct {
 	Url             string
 	ExchangeDeclare ExchangeDeclare
-	messages        chan Message
+	msgQueueForPub  chan Message
 }
 
 func main() {
@@ -72,7 +72,7 @@ func (p PubSubConf) createSession() any {
 
 func (p PubSubConf) publishMessage() func(session any) {
 	var (
-		reading = p.messages
+		reading = p.msgQueueForPub
 		pending = make(chan Message, 1)
 	)
 
@@ -105,7 +105,7 @@ func (p PubSubConf) publishMessage() func(session any) {
 				if !confirmed.Ack {
 					log.Printf("nack Message %d, msg: %q", confirmed.DeliveryTag, string(msg.Body))
 				}
-				reading = p.messages
+				reading = p.msgQueueForPub
 			case msg = <-pending:
 				ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 				defer cancel()
@@ -121,7 +121,7 @@ func (p PubSubConf) publishMessage() func(session any) {
 				}
 
 			case msg, running = <-reading:
-				// all messages consumed
+				// all msgQueueForPub consumed
 				if !running {
 					return
 				}
@@ -135,7 +135,7 @@ func (p PubSubConf) publishMessage() func(session any) {
 
 func (p PubSubConf) Publish(msg Message) {
 	go func() {
-		p.messages <- msg
+		p.msgQueueForPub <- msg
 	}()
 }
 
